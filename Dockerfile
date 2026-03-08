@@ -37,16 +37,19 @@ RUN python -m pip install --no-cache-dir --upgrade setuptools wheel "Cython<3"
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# 4) Clone OpenVoice
+# 4) Install PyAV with pinned Cython in non-isolated build environment
+RUN pip install --no-cache-dir --no-build-isolation av==10.0.0
+
+# 5) Clone OpenVoice
 RUN git clone --depth 1 https://github.com/myshell-ai/OpenVoice.git /opt/OpenVoice
 
-# 5) Install OpenVoice
-RUN pip install --no-cache-dir -e /opt/OpenVoice
+# 6) Install OpenVoice
+RUN pip install --no-cache-dir --no-build-isolation -e /opt/OpenVoice
 
-# 6) Install MeloTTS
+# 7) Install MeloTTS
 RUN pip install --no-cache-dir git+https://github.com/myshell-ai/MeloTTS.git
 
-# 7) Download UniDic dictionary used by MeloTTS
+# 8) Download UniDic dictionary used by MeloTTS
 RUN python -m unidic download
 
 COPY app /app/app
