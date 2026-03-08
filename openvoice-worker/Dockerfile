@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -10,13 +10,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# 1) System dependencies for OpenVoice/MeloTTS + PyAV/FFmpeg build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     pkg-config \
-    build-essential \
     git \
-    curl \
-    libsndfile1 \
+    build-essential \
+    python3-dev \
     libavcodec-dev \
     libavformat-dev \
     libavdevice-dev \
@@ -24,17 +24,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libavfilter-dev \
     libswscale-dev \
     libswresample-dev \
+    curl \
+    libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python -m pip install --upgrade pip setuptools wheel
+# 2) Upgrade pip
+RUN python -m pip install --no-cache-dir --upgrade pip
+
+# 3) Ensure build tooling exists before compiling native deps (e.g. PyAV)
+RUN python -m pip install --no-cache-dir --upgrade setuptools wheel "Cython<3"
 
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-RUN git clone --depth 1 https://github.com/myshell-ai/OpenVoice.git /opt/OpenVoice \
-    && pip install --no-cache-dir -e /opt/OpenVoice \
-    && pip install --no-cache-dir git+https://github.com/myshell-ai/MeloTTS.git \
-    && python -m unidic download
+# 4) Clone OpenVoice
+RUN git clone --depth 1 https://github.com/myshell-ai/OpenVoice.git /opt/OpenVoice
+
+# 5) Install OpenVoice
+RUN pip install --no-cache-dir -e /opt/OpenVoice
+
+# 6) Install MeloTTS
+RUN pip install --no-cache-dir git+https://github.com/myshell-ai/MeloTTS.git
+
+# 7) Download UniDic dictionary used by MeloTTS
+RUN python -m unidic download
 
 COPY app /app/app
 COPY scripts/start.sh /app/scripts/start.sh
